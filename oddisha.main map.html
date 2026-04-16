@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odisha Journey - Board Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+
+        :root {
+            --primary-gold: #d4af37;
+            --paper-bg: #f4e4bc;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Cinzel', serif;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Game Container */
+        #game-container {
+            position: relative;
+            max-width: 1000px;
+            width: 95vw;
+            aspect-ratio: 1024 / 683;
+            margin-top: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            border: 8px solid #3d2b1f;
+            border-radius: 4px;
+            background-color: #f4e4bc;
+            background-image: url('unnamed.jpg');
+            background-size: contain;
+            background-position: center center;
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }
+
+        #game-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0.1));
+            border-radius: inherit;
+            z-index: 1;
+        }
+
+        /* The Board Layers */
+        #board-image {
+            width: 100%;
+            display: block;
+            pointer-events: none;
+            opacity: 1;
+        }
+
+        .waypoint {
+            position: absolute;
+            width: 5%;
+            height: 7%;
+            border-radius: 50%;
+            /* background: rgba(255, 255, 255, 0.2); Uncomment to debug coordinates */
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+
+        /* The Token */
+        #player-token {
+            position: absolute;
+            width: 4.5%;
+            height: 7%;
+            background: radial-gradient(circle, #ffd700, #ff8c00);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transform: translate(-50%, -80%);
+            z-index: 20;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2vw;
+            color: #3d2b1f;
+            font-weight: bold;
+        }
+
+        #player-token::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            background: rgba(0,0,0,0.4);
+            filter: blur(4px);
+            border-radius: 50%;
+        }
+
+        /* Dice Styles */
+        .dice-area {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            background: rgba(0,0,0,0.6);
+            padding: 20px 40px;
+            border-radius: 50px;
+            border: 2px solid var(--primary-gold);
+        }
+
+        .scene {
+            width: 60px;
+            height: 60px;
+            perspective: 300px;
+        }
+
+        .dice {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.1, 0.7, 1.0, 0.1);
+        }
+
+        .dice-face {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            display: grid;
+            grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+            padding: 5px;
+            box-sizing: border-box;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #333;
+            border-radius: 50%;
+            align-self: center;
+            justify-self: center;
+        }
+
+        /* Face positioning */
+        .face-1 { transform: rotateY(0deg) translateZ(30px); }
+        .face-2 { transform: rotateY(90deg) translateZ(30px); }
+        .face-3 { transform: rotateY(180deg) translateZ(30px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(30px); }
+        .face-5 { transform: rotateX(90deg) translateZ(30px); }
+        .face-6 { transform: rotateX(-90deg) translateZ(30px); }
+
+        /* Dots logic */
+        .face-1 .dot:nth-child(1) { grid-area: 2 / 2; }
+        .face-2 .dot:nth-child(1) { grid-area: 1 / 1; } .face-2 .dot:nth-child(2) { grid-area: 3 / 3; }
+        .face-3 .dot:nth-child(1) { grid-area: 1 / 1; } .face-3 .dot:nth-child(2) { grid-area: 2 / 2; } .face-3 .dot:nth-child(3) { grid-area: 3 / 3; }
+        .face-4 .dot:nth-child(1) { grid-area: 1 / 1; } .face-4 .dot:nth-child(2) { grid-area: 1 / 3; } .face-4 .dot:nth-child(3) { grid-area: 3 / 1; } .face-4 .dot:nth-child(4) { grid-area: 3 / 3; }
+        .face-5 .dot:nth-child(1) { grid-area: 1 / 1; } .face-5 .dot:nth-child(2) { grid-area: 1 / 3; } .face-5 .dot:nth-child(3) { grid-area: 2 / 2; } .face-5 .dot:nth-child(4) { grid-area: 3 / 1; } .face-5 .dot:nth-child(5) { grid-area: 3 / 3; }
+        .face-6 .dot:nth-child(1) { grid-area: 1 / 1; } .face-6 .dot:nth-child(2) { grid-area: 2 / 1; } .face-6 .dot:nth-child(3) { grid-area: 3 / 1; } .face-6 .dot:nth-child(4) { grid-area: 1 / 3; } .face-6 .dot:nth-child(5) { grid-area: 2 / 3; } .face-6 .dot:nth-child(6) { grid-area: 3 / 3; }
+
+        .btn-roll {
+            background: linear-gradient(135deg, #8b4513, #3d2b1f);
+            color: #d4af37;
+            border: 2px solid #d4af37;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'Cinzel', serif;
+        }
+
+        .btn-roll:active { transform: scale(0.95); }
+        .btn-roll:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .message-box {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            padding: 10px 30px;
+            border: 1px solid var(--primary-gold);
+            border-radius: 4px;
+            font-size: 1.1rem;
+            text-align: center;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .message-box.show { opacity: 1; }
+
+        @media (max-width: 600px) {
+            .dice-area { gap: 15px; padding: 10px 20px; }
+            .btn-roll { padding: 8px 15px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="text-4xl mt-6 font-bold tracking-widest" style="color: var(--primary-gold)">The Odyssey of Odisha</h1>
+    <p class="text-gray-400 mb-2">Roll the dice to navigate the land of temples</p>
+
+    <div id="game-container">
+        <div id="message" class="message-box"></div>
+        <div id="player-token">🐘</div>
+        
+        <!-- Waypoint markers (Invisible but functional) -->
+        <div id="waypoints-container"></div>
+    </div>
+
+    <div class="dice-area">
+        <div class="scene">
+            <div class="dice" id="dice">
+                <div class="dice-face face-1"><div class="dot"></div></div>
+                <div class="dice-face face-2"><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face face-4"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face face-5"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face face-6"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            </div>
+        </div>
+        <button class="btn-roll" id="roll-btn">Roll Dice</button>
+    </div>
+
+    <script>
+        /**
+         * WAYPOINTS COORDINATES (Percentage based)
+         * These track the circular nodes in the image path starting from Jagannath Temple
+         */
+        const waypoints = [
+            { x: 34.5, y: 19.5, name: "Jagannath Temple", link: "https://fiona6612.github.io/jagannath.puzzle/" }, // Start
+            { x: 20.8, y: 31.0, name: "Sun Temple Path", link: "https://fiona6612.github.io/sun-temple-puzzle/" },
+            { x: 17.0, y: 53.0, name: "Western Gates", link: "https://fiona6612.github.io/lingraj-temp-quiz/" },
+            { x: 18.2, y: 74.5, name: "Southern Temples", link: "https://fiona6612.github.io/konark-quiz/" },
+            { x: 44.2, y: 83.0, name: "Sacred Lake Bridge", link: "https://fiona6612.github.io/chilika.puzzle/" },
+            { x: 73.0, y: 78.5, name: "Elephant Sanctuary", link: "https://fiona6612.github.io/-Nandankanan-Zoological-Park-puzzle/" },
+            { x: 82.5, y: 62.5, name: "Odissi Circle", link: "https://fiona6612.github.io/oddisha-dance-quiz/" },
+            { x: 85.0, y: 44.2, name: "Snake Charmer Path", link: "https://fiona6612.github.io/maritime-quiz/" },
+            { x: 81.0, y: 20.8, name: "Northern Peaks" },
+            { x: 62.0, y: 15.0, name: "Odisha Highlands" }  // Finish area
+        ];
+
+        let currentPos = 0;
+        let isMoving = false;
+
+        const dice = document.getElementById('dice');
+        const rollBtn = document.getElementById('roll-btn');
+        const token = document.getElementById('player-token');
+        const msgBox = document.getElementById('message');
+        const waypointsContainer = document.getElementById('waypoints-container');
+
+        // Initialize Waypoints
+        function initBoard() {
+            waypoints.forEach((wp, index) => {
+                const div = document.createElement('div');
+                div.className = 'waypoint';
+                div.style.left = wp.x + '%';
+                div.style.top = wp.y + '%';
+                waypointsContainer.appendChild(div);
+            });
+            updateTokenPosition();
+        }
+
+        function updateTokenPosition() {
+            const wp = waypoints[currentPos];
+            token.style.left = wp.x + '%';
+            token.style.top = wp.y + '%';
+        }
+
+        function showMessage(text) {
+            msgBox.innerText = text;
+            msgBox.classList.add('show');
+            setTimeout(() => msgBox.classList.remove('show'), 3000);
+        }
+
+        async function movePlayer(steps) {
+            isMoving = true;
+            rollBtn.disabled = true;
+
+            for (let i = 0; i < steps; i++) {
+                if (currentPos < waypoints.length - 1) {
+                    currentPos++;
+                    updateTokenPosition();
+                    // Small jump delay
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                } else {
+                    showMessage("You've reached the Finish!");
+                    currentPos = 0; // Loop back or stop
+                    setTimeout(updateTokenPosition, 1000);
+                    break;
+                }
+            }
+
+            const currentWaypoint = waypoints[currentPos];
+            showMessage(`Landed at: ${currentWaypoint.name}`);
+            
+            // Open link in new tab if waypoint has one
+            if (currentWaypoint.link) {
+                setTimeout(() => {
+                    window.open(currentWaypoint.link, '_blank');
+                }, 500);
+            }
+            
+            isMoving = false;
+            rollBtn.disabled = false;
+        }
+
+        function rollDice() {
+            if (isMoving) return;
+
+            const roll = Math.floor(Math.random() * 6) + 1;
+            
+            // Random rotation animation
+            const xRot = Math.floor(Math.random() * 4) * 90 + 720;
+            const yRot = Math.floor(Math.random() * 4) * 90 + 720;
+
+            // Final face coordinates
+            const faces = {
+                1: [0, 0],
+                2: [0, -90],
+                3: [0, -180],
+                4: [0, 90],
+                5: [-90, 0],
+                6: [90, 0]
+            };
+
+            const [finalX, finalY] = faces[roll];
+            dice.style.transform = `rotateX(${xRot + finalX}deg) rotateY(${yRot + finalY}deg)`;
+
+            setTimeout(() => {
+                movePlayer(roll);
+            }, 1100);
+        }
+
+        rollBtn.addEventListener('click', rollDice);
+
+        window.onload = initBoard;
+    </script>
+</body>
+</html>
